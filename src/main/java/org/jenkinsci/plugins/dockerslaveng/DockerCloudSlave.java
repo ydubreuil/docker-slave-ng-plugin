@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.dockerslaveng;
 
+import hudson.Launcher;
 import hudson.model.Descriptor;
 import hudson.model.Node;
 import hudson.model.TaskListener;
@@ -8,6 +9,7 @@ import hudson.slaves.AbstractCloudSlave;
 import hudson.slaves.CloudRetentionStrategy;
 import hudson.slaves.EphemeralNode;
 import hudson.slaves.NodeProperty;
+import hudson.slaves.SlaveComputer;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -29,6 +31,18 @@ public class DockerCloudSlave extends AbstractCloudSlave implements EphemeralNod
     @Override
     protected void _terminate(TaskListener listener) throws IOException, InterruptedException {
         // NOOP: destroyed by docker
+    }
+
+    @Override
+    public Launcher createLauncher(TaskListener listener) {
+        SlaveComputer c = getComputer();
+        if (c == null) {
+            listener.error("Issue with creating launcher for slave " + name + ".");
+            return new Launcher.DummyLauncher(listener);
+        } else {
+            DockerCloudComputer dc = (DockerCloudComputer) c;
+            return new DockerLauncher(listener, c.getChannel(), c.isUnix(), getNodeName()).decorateFor(this);
+        }
     }
 
     @Override
